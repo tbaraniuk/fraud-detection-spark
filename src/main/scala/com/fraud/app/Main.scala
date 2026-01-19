@@ -45,7 +45,7 @@ object Main {
     )
     val testProcessed = featureModel.transform(testData)
 
-    val model = Trainer.train(trainProcessed)
+    val model = Trainer.train(trainProcessed, config.ml.hyperparameters)
 
     val metrics = Evaluator.evaluate(model, testProcessed)
     MlflowTracker.logMetrics(metrics)

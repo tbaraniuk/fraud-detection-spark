@@ -1,11 +1,11 @@
 package com.fraud.ml
 
-import org.apache.spark.ml.PipelineModel
+import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.sql.DataFrame
 
 object Evaluator {
-  def evaluate(model: PipelineModel, testData: DataFrame): Map[String, Double] = {
+  def evaluate(model: Transformer, testData: DataFrame): Map[String, Double] = {
     val predictions = model.transform(testData)
 
     val binaryMetrics = evaluateBinaryMetrics(predictions)

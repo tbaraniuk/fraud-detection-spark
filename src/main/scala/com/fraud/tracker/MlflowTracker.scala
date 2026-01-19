@@ -2,8 +2,8 @@ package com.fraud.tracker
 
 import com.fraud.config.MlflowConfig
 import org.apache.spark.ml.classification.LogisticRegressionModel
-import org.apache.spark.sql.{DataFrame, Dataset, Encoder}
-import org.mlflow.api.proto.Service.{CreateRun, Experiment, RunStatus}
+import org.apache.spark.sql.{Dataset, Encoder}
+import org.mlflow.api.proto.Service.{CreateRun, RunStatus}
 import org.mlflow.tracking.MlflowClient
 
 import scala.collection.JavaConverters._
@@ -68,21 +68,21 @@ object MlflowTracker {
 
       model match {
         case lr: LogisticRegressionModel =>
-          logParam("max_iter", lr.maxIter)
+          logParam("max_iter", lr.getMaxIter)
           logParam("reg_param", lr.getRegParam)
-          logParam("elastic_net_param", lr.elasticNetParam)
-          logParam("threshold", lr.threshold)
+          logParam("elastic_net_param", lr.getElasticNetParam)
+          logParam("threshold", lr.getThreshold)
         case _ =>
           println(s"Unknown model type: $modelType")
       }
 
-      logArtifact(modelPath)
+//      logArtifact(modelPath)
     }
   }
 
   def logDatasetInfo[T <: Product : Encoder](df: Dataset[T], name: String): Unit = {
-    logParam(s"{name}_count", df.count())
-    logParam(s"{name}_num_features", df.columns.length)
+    logParam(s"${name}_count", df.count())
+    logParam(s"${name}_num_features", df.columns.length)
 
     if (df.columns.contains("Class")) {
       val classDict = df.groupBy("Class").count().collect()
