@@ -1,7 +1,8 @@
 package com.fraud.config
 
 case class MLConfig(
-                   numeric: List[String],
+                   pcaFeatures: List[String],
+                   numericFeatures: List[String],
                    label: String,
                    hyperparameters: HyperparametersConfig
                    )

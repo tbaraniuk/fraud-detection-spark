@@ -1,26 +1,32 @@
 package com.fraud.preprocessing
 
 import com.fraud.config.MLConfig
-import com.fraud.domain.CredentialsScheme
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.feature.{StandardScaler, StringIndexer, VectorAssembler}
+import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
 import org.apache.spark.sql.{Dataset, Encoder}
 import org.apache.spark.sql.functions.{lit, when}
 
+import scala.language.postfixOps
+
 object FeatureEngineering {
   def createPipeline(mlConfig: MLConfig): Pipeline = {
-    val assembler = new VectorAssembler()
-      .setInputCols(mlConfig.numeric.toArray)
-      .setOutputCol("features_raw")
+    val numeric_assembler = new VectorAssembler()
+      .setInputCols(mlConfig.numericFeatures.toArray)
+      .setOutputCol("numeric_features")
       .setHandleInvalid("skip")
 
     val scaler = new StandardScaler()
-      .setInputCol("features_raw")
-      .setOutputCol("features")
+      .setInputCol("numeric_features")
+      .setOutputCol("numeric_features_scaled")
       .setWithStd(true)
       .setWithMean(true)
 
-    new Pipeline().setStages(Array(assembler, scaler))
+    val assembler = new VectorAssembler()
+      .setInputCols(("numeric_features_scaled" +: mlConfig.pcaFeatures).toArray)
+      .setOutputCol("features")
+      .setHandleInvalid("skip")
+
+    new Pipeline().setStages(Array(numeric_assembler, scaler, assembler))
   }
 
   def addClassWeights[T <: Product : Encoder](df: Dataset[T]): Dataset[T] = {
@@ -29,11 +35,29 @@ object FeatureEngineering {
 
     val balancingRatio = legitCount.toDouble / fraudCount.toDouble
 
-    import df.sparkSession.implicits._
-
     df.withColumn(
       "classWeight",
       when(df("Class") === 1, lit(balancingRatio)).otherwise(lit(1.0))
     ).as[T]
+  }
+
+  def iqrFiltering[T <: Product : Encoder](df: Dataset[T], colNames: List[String]): Dataset[T] = {
+    val probabilities = Array(0.25, 0.75)
+    val relativeError = 0.01
+
+    val combinedFilter = colNames.map { colName =>
+      val quantiles = df.stat.approxQuantile(colName, probabilities, relativeError)
+
+      val q1 = quantiles(0)
+      val q3 = quantiles(1)
+      val iqr = q3 - q1
+
+      val lowerBound = q1 - 3 * iqr
+      val upperBound = q3 + 3 * iqr
+
+      (df(colName) >= lowerBound) && (df(colName) <= upperBound)
+    }.reduce(_.and(_))
+
+    df.filter(combinedFilter).as[T]
   }
 }

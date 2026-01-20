@@ -6,8 +6,6 @@ import org.apache.spark.sql.{Dataset, Encoder}
 import org.mlflow.api.proto.Service.{CreateRun, RunStatus}
 import org.mlflow.tracking.MlflowClient
 
-import scala.collection.JavaConverters._
-
 object MlflowTracker {
   private var client: Option[MlflowClient] = None
   private var runId: Option[String] = None

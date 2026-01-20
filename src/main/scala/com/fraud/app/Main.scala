@@ -32,6 +32,7 @@ object Main {
     println("The data was loaded!")
 
     val processedData: Dataset[CredentialsScheme] = rawData
+      .dropDuplicates()
       .withColumn("classWeight", lit(null).cast("double"))
       .as[CredentialsScheme]
 
@@ -40,9 +41,9 @@ object Main {
     val pipeline = FeatureEngineering.createPipeline(config.ml)
     val featureModel = pipeline.fit(trainingData)
 
-    val trainProcessed = featureModel.transform(
-      FeatureEngineering.addClassWeights(trainingData)
-    )
+    val trainingWithWeights = FeatureEngineering.addClassWeights(trainingData)
+    val trainProcessed = featureModel.transform(trainingWithWeights)
+
     val testProcessed = featureModel.transform(testData)
 
     val model = Trainer.train(trainProcessed, config.ml.hyperparameters)
